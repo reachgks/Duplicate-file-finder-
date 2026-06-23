@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocuFlow | AI Document Organizer & Renamer</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-decorations">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header glass">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <h1>DocuFlow</h1>
+                    <p class="subtitle">AI-Powered File Organizer & Naming Assistant</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div id="connection-status" class="status-badge connected">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">Backend Connected</span>
+                </div>
+                <button id="toggle-settings-btn" class="btn btn-secondary" title="Configure settings">
+                    <i class="fa-solid fa-cog"></i> Settings
+                </button>
+            </div>
+        </header>
+
+        <!-- SETTINGS PANEL (Collapsible) -->
+        <section id="settings-panel" class="settings-card glass hidden">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-sliders"></i> Configuration Settings</h2>
+                <button id="close-settings-btn" class="close-btn"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <label for="api-key-input">Gemini API Key</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="api-key-input" placeholder="AIzaSy...">
+                        <button type="button" id="toggle-key-visibility" class="visibility-btn">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="help-text">Enter your Gemini API key. This is stored securely in your local browser storage.</span>
+                </div>
+
+                <div class="setting-group">
+                    <label for="naming-template-input">File Naming Template</label>
+                    <input type="text" id="naming-template-input" value="{Category}_{Client}_{Description}_{Date}">
+                    <span class="help-text">Available tokens: <code>{Category}</code>, <code>{Client}</code>, <code>{Description}</code>, <code>{Date}</code> (YYYYMMDD)</span>
+                </div>
+
+                <div class="setting-group">
+                    <label for="folder-strategy-select">Folder Structuring Strategy</label>
+                    <select id="folder-strategy-select">
+                        <option value="category">Organize by Category (e.g. /Customer Proposals/)</option>
+                        <option value="client-category">Organize by Client first, then Category (e.g. /Acme Corp/Customer Proposals/)</option>
+                        <option value="flat">Keep files in a single flat directory (no subfolders)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-actions">
+                <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+            </div>
+        </section>
+
+        <!-- FOLDER SELECTOR CARD -->
+        <main class="main-content">
+            <section class="folder-selector-card glass">
+                <div class="selector-form">
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-folder-open input-icon"></i>
+                        <input type="text" id="folder-path-input" placeholder="C:\Users\username\Documents\Projects">
+                    </div>
+                    <button id="browse-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-search"></i> Browse...
+                    </button>
+                    <button id="scan-btn" class="btn btn-primary btn-glow">
+                        <i class="fa-solid fa-arrow-rotate-right"></i> Scan Folder
+                    </button>
+                </div>
+                
+                <div id="scan-stats" class="scan-stats-bar hidden">
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">Total Files Found</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-pending">0</span>
+                        <span class="stat-label">Pending Analysis</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-processed">0</span>
+                        <span class="stat-label">Processed</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TABS & ACTIONS TOOLBAR -->
+            <section class="files-management-panel glass">
+                <div class="panel-header">
+                    <div class="tabs-container">
+                        <button class="tab-btn active" data-tab="tab-scan">
+                            <i class="fa-solid fa-list-check"></i> Scan & Classify
+                        </button>
+                        <button class="tab-btn" data-tab="tab-review">
+                            <i class="fa-solid fa-shuffle"></i> Rearrange & Execute
+                        </button>
+                        <button class="tab-btn" data-tab="tab-cleanup">
+                            <i class="fa-solid fa-trash-can"></i> Source Clean-Up
+                        </button>
+                    </div>
+
+                    <!-- Filter / Quick Action Bar -->
+                    <div id="classification-toolbar" class="toolbar-actions">
+                        <button id="classify-btn" class="btn btn-accent btn-glow" disabled>
+                            <i class="fa-solid fa-robot"></i> Classify Selected (<span id="selected-count-label">0</span>)
+                        </button>
+                    </div>
+                    
+                    <div id="execution-toolbar" class="toolbar-actions hidden">
+                        <button id="execute-btn" class="btn btn-success btn-glow" disabled>
+                            <i class="fa-solid fa-play"></i> Run Move/Rename Execution
+                        </button>
+                    </div>
+
+                    <div id="cleanup-toolbar" class="toolbar-actions hidden">
+                        <button id="cleanup-btn" class="btn btn-danger btn-glow" disabled>
+                            <i class="fa-solid fa-broom"></i> Delete Selected Originals
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 1: SCAN & CLASSIFY -->
+                <div id="tab-scan" class="tab-content active">
+                    <div class="table-scroll-container">
+                        <table class="files-table">
+                            <thead>
+                                <tr>
+                                    <th width="40px"><input type="checkbox" id="master-select-scan"></th>
+                                    <th>Original File Name & Directory</th>
+                                    <th width="180px">Detected Context</th>
+                                    <th>Suggested Name</th>
+                                    <th>Suggested Subfolder</th>
+                                    <th width="150px">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-table-body">
+                                <tr>
+                                    <td colspan="6" class="table-empty-state">
+                                        <i class="fa-solid fa-folder-open"></i>
+                                        <p>No folder selected. Select a directory and scan for documents to begin.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: REARRANGE & EXECUTE -->
+                <div id="tab-review" class="tab-content">
+                    <div class="review-layout">
+                        <div class="review-details">
+                            <div class="info-alert">
+                                <i class="fa-solid fa-info-circle"></i>
+                                <div>
+                                    <h4>Safe Execution Mode Active</h4>
+                                    <p>DocuFlow will copy your original files and rename them into the newly structured directories. Your original files will remain completely untouched. You can verify the new structure and delete the original files in the Clean-Up tab later.</p>
+                                </div>
+                            </div>
+
+                            <div class="table-scroll-container mt-4">
+                                <table class="files-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="40px"><input type="checkbox" id="master-select-exec"></th>
+                                            <th>Original Path</th>
+                                            <th>Target Path (Relative to root)</th>
+                                            <th width="150px">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="execution-table-body">
+                                        <tr>
+                                            <td colspan="4" class="table-empty-state">
+                                                <i class="fa-solid fa-circle-nodes"></i>
+                                                <p>No classified files selected for execution. Go to "Scan & Classify" tab, analyze files, and check them.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CLEAN-UP -->
+                <div id="tab-cleanup" class="tab-content">
+                    <div class="review-layout">
+                        <div class="review-details">
+                            <div class="warning-alert">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <div>
+                                    <h4>Original Files Cleanup Manager</h4>
+                                    <p>These are the original source files that have been successfully copied to the new folder structure. Once you have validated the copied files, select the files below to delete their originals. This action requires confirmation and is permanent.</p>
+                                </div>
+                            </div>
+
+                            <div class="table-scroll-container mt-4">
+                                <table class="files-table">
+                                    <thead>
+                                        <tr>
+                                            <th width="40px"><input type="checkbox" id="master-select-cleanup"></th>
+                                            <th>Original Source File Path</th>
+                                            <th>Successfully Copied Path</th>
+                                            <th width="150px">Action Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cleanup-table-body">
+                                        <tr>
+                                            <td colspan="4" class="table-empty-state">
+                                                <i class="fa-solid fa-shield-halved"></i>
+                                                <p>No files have been rearranged in this session yet. Originals will appear here after execution.</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- CONSOLE / LOGS DRAWER -->
+        <footer class="console-drawer glass">
+            <div class="console-header">
+                <h3><i class="fa-solid fa-terminal"></i> Activity Log & Console</h3>
+                <button id="clear-console-btn" class="text-btn">Clear Logs</button>
+            </div>
+            <div id="console-logs" class="console-body">
+                <div class="log-line system">DocuFlow initialized. Ready for operations.</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="toast-notification hidden">
+        <i id="toast-icon" class="fa-solid fa-info-circle"></i>
+        <span id="toast-message">Notification message goes here</span>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content glass">
+            <div class="modal-header warning">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm File Deletion</h3>
+                <button id="modal-close-btn" class="close-btn"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>You are about to delete <strong id="delete-count-text">0</strong> original files from their source folders.</p>
+                <p class="danger-warning"><strong>WARNING:</strong> This action cannot be undone. Please ensure the files have been correctly copied to their new structures before proceeding.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="modal-confirm-btn" class="btn btn-danger">Yes, Delete Files</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
